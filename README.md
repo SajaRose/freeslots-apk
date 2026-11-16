@@ -5,7 +5,7 @@ APK Android (WebView plein écran) pour [freeslots.com](https://www.freeslots.co
 ## Fonctionnement
 
 - Package `com.freeslots.app`, minSdk 24 (Android 7.0+), targetSdk 34.
-- Charge `https://www.freeslots.com/` en plein écran (JS, DOM storage, cache activés).
+- Charge `https://www.freeslots.com/` en plein écran immersif : barres de statut et de navigation masquées (révélées temporairement par un balayage).
 - La navigation reste dans l'app sur `*.freeslots.com` ; les liens externes s'ouvrent dans le navigateur.
 - Bouton retour géré via l'historique WebView ; état restauré après rotation.
 
