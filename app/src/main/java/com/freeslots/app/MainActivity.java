@@ -2,12 +2,14 @@ package com.freeslots.app;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.webkit.WebChromeClient;
@@ -17,6 +19,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+
+import java.util.Locale;
 
 public class MainActivity extends Activity {
 
@@ -40,7 +44,7 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
-        settings.setSupportMultipleWindows(true);
+        settings.setSupportMultipleWindows(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
@@ -48,12 +52,22 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl();
-                String host = uri.getHost();
-                if (host != null && (host.equals("freeslots.com") || host.endsWith(".freeslots.com"))) {
+                if (!request.isForMainFrame()) {
                     return false;
                 }
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                Uri uri = request.getUrl();
+                String host = uri.getHost();
+                if (host != null) {
+                    host = host.toLowerCase(Locale.ROOT);
+                    if (host.equals("freeslots.com") || host.endsWith(".freeslots.com")) {
+                        return false;
+                    }
+                }
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(MainActivity.this, R.string.external_link_error, Toast.LENGTH_SHORT).show();
+                }
                 return true;
             }
 
@@ -66,10 +80,25 @@ public class MainActivity extends Activity {
         });
         webView.setWebChromeClient(new WebChromeClient());
 
-        if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState);
-        } else {
+        boolean restored = savedInstanceState != null && webView.restoreState(savedInstanceState) != null;
+        if (!restored) {
             webView.loadUrl(HOME_URL);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.onResume();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (webView != null) {
+            webView.onPause();
         }
     }
 
@@ -116,6 +145,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (webView != null) {
+            ViewGroup parent = (ViewGroup) webView.getParent();
+            if (parent != null) {
+                parent.removeView(webView);
+            }
             webView.destroy();
             webView = null;
         }
